@@ -1,4 +1,4 @@
-# EcoLogits — Cursor Impact
+# EcoLogits status bar extension for Cursor
 
 Shows the estimated environmental impact of your [Cursor](https://cursor.com) agent sessions in the status bar: greenhouse gas emissions (CO₂eq), water consumption, and energy consumption, powered by the [EcoLogits](https://ecologits.ai) API.
 
