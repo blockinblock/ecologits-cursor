@@ -1,13 +1,13 @@
 {
-  "name": "ecologits-vscode",
-  "displayName": "EcoLogits — Claude Code Impact",
-  "description": "Shows the environmental impact of your Claude Code session in the VS Code status bar (CO₂, water, energy) via the public EcoLogits API.",
+  "name": "ecologits-cursor",
+  "displayName": "EcoLogits — Cursor Impact",
+  "description": "Shows the environmental impact of your Cursor agent sessions in the status bar (CO₂, water, energy) via the public EcoLogits API.",
   "version": "0.1.0",
-  "publisher": "Marmelab",
+  "publisher": "ecologits-cursor",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/marmelab/ecologits-vscode"
+    "url": "https://github.com/your-org/ecologits-cursor"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -16,7 +16,7 @@
     "Other"
   ],
   "keywords": [
-    "claude",
+    "cursor",
     "ai",
     "carbon",
     "environment",
@@ -29,47 +29,57 @@
   "contributes": {
     "commands": [
       {
-        "command": "ecologits.cycleMode",
-        "title": "EcoLogits: Cycle display mode (last / workspace / all time)"
+        "command": "ecologitsCursor.cycleMode",
+        "title": "EcoLogits: Cycle display mode (last / chat / workspace / all time)"
+      },
+      {
+        "command": "ecologitsCursor.installHook",
+        "title": "EcoLogits: Install Cursor hook"
+      },
+      {
+        "command": "ecologitsCursor.uninstallHook",
+        "title": "EcoLogits: Uninstall Cursor hook"
       }
     ],
     "configuration": {
       "title": "EcoLogits",
       "properties": {
-        "ecologits.mode": {
+        "ecologitsCursor.mode": {
           "type": "string",
           "default": "workspace",
           "enum": [
             "lastUse",
+            "chat",
             "workspace",
             "allTime"
           ],
           "enumDescriptions": [
             "Show only the last response's impact.",
+            "Show cumulative impact for the current chat session (approximated by the latest conversation ID in this workspace).",
             "Show cumulative impact for all sessions in the current workspace.",
             "Show cumulative impact across all projects and all time."
           ],
           "markdownDescription": "What to accumulate. Click the status bar item to cycle through modes."
         },
-        "ecologits.model": {
-          "type": "string",
-          "default": "auto",
-          "markdownDescription": "Claude model to estimate. `auto` tracks the model the session is actually using (reads it from the transcript). You can pin a specific model instead, e.g. `claude-sonnet-4-6`. Valid values: `claude-opus-4-8`, `claude-opus-4-7`, `claude-opus-4-6`, `claude-opus-4-5`, `claude-sonnet-4-6`, `claude-sonnet-4-5`, `claude-haiku-4-5`."
-        },
-        "ecologits.zone": {
-          "type": "string",
-          "default": "WOR",
-          "markdownDescription": "Electricity-mix zone for the server location (ISO-3166 alpha-3). Defaults to `WOR` (world average). Examples: `FRA`, `USA`, `DEU`."
-        },
-        "ecologits.metrics": {
+        "ecologitsCursor.metrics": {
           "type": "string",
           "default": "gwp wcf energy",
           "markdownDescription": "Space-separated list of metrics to display, in order. Available: `gwp` 🔥 (CO₂eq), `wcf` 💧 (water), `energy` ⚡ (kWh), `adpe` ⛏ (minerals), `pe` 🛢 (primary energy), `model` 🤖 (model name). Example: `model gwp wcf energy`."
         },
-        "ecologits.api": {
+        "ecologitsCursor.zone": {
+          "type": "string",
+          "default": "WOR",
+          "markdownDescription": "Electricity-mix zone for the server location (ISO-3166 alpha-3). Defaults to `WOR` (world average). Examples: `FRA`, `USA`, `DEU`."
+        },
+        "ecologitsCursor.api": {
           "type": "string",
           "default": "https://api.ecologits.ai/v1beta/estimations",
           "markdownDescription": "EcoLogits estimations endpoint. Override if you self-host the API."
+        },
+        "ecologitsCursor.nodePath": {
+          "type": "string",
+          "default": "node",
+          "markdownDescription": "Path to the `node` executable used by the capture hook. Set an absolute path (e.g. `/opt/homebrew/bin/node`) if Cursor cannot find `node` on its PATH."
         }
       }
     }
