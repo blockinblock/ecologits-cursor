@@ -49,7 +49,7 @@ process.stdin.on('end', () => {
   try {
     let payload;
     try {
-      payload = JSON.parse(raw);
+      payload = JSON.parse(raw.replace(/^\uFEFF/, ''));
     } catch (e) {
       logError(`capture.js: failed to parse payload: ${e.message}`);
       process.stdout.write('{}\n');
