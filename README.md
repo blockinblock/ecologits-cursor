@@ -1,37 +1,117 @@
-# EcoLogist status bar extension for VS Code
+# EcoLogits — Cursor Impact
 
-Shows the estimated environmental impact of your Claude Code session in the VSCode status bar.
+Shows the estimated environmental impact of your [Cursor](https://cursor.com) agent sessions in the status bar: greenhouse gas emissions (CO₂eq), water consumption, and energy consumption, powered by the [EcoLogits](https://ecologits.ai) API.
 
-This includes greenhouse gas emissions (CO₂), water consumption, and energy consumption are displayed in the status bar, based on the [EcoLogits](https://ecologits.ai/latest/) model and data. 
+Adapted from [marmelab/ecologits-vscode](https://github.com/marmelab/ecologits-vscode) (MIT).
 
-![Screenshot of the reported impact in the VS Code status bar](./assets/vscode-report.png)
+## How it works
 
-The extension has three modes:
+```
+Cursor agent response
+  └─▶  afterAgentResponse hook  (capture.js — no network)
+         └─▶  ~/.cursor/ecologits/responses.jsonl
+                └─▶  extension host  ──POST──▶  EcoLogits API
+                       └─▶  ~/.cursor/ecologits/impacts.jsonl
+                              └─▶  status bar
+```
 
-- **Last use**: shows only the last session's impact.
-- **Workspace**: shows cumulative impact for all sessions in the current workspace.
-- **All time**: shows cumulative impact across all projects and all time.
+1. A tiny `capture.js` hook ships inside the extension. It receives the model ID and output-token count from Cursor's hook system and writes one JSON line per agent response.
+2. The extension reads new lines, calls the EcoLogits estimation API, caches results, and updates the status bar.
+3. No data is sent to any third party except the public EcoLogits API (`api.ecologits.ai`). The data files live in `~/.cursor/ecologits/`.
 
-It's an adaptation of the [ecologits-statusline](https://github.com/DuarteVi/ecologits-statusline) project.
+## Supported models
 
-## How to build and run the extension
+| Provider | Patterns matched |
+|---|---|
+| Anthropic | `claude-*` |
+| OpenAI | `gpt-*`, `o1`, `o3`, … |
+| Google | `gemini-*`, `gemma-*` |
+| Mistral | `mistral-*`, `codestral-*`, `magistral-*`, `devstral-*` |
 
-1. Install dependencies:
+Other models (Auto, Composer, unknown) are counted as unsupported and show in the tooltip.
+
+## Display modes
+
+Click the status bar item to cycle through modes:
+
+| Mode | What it shows |
+|---|---|
+| **last** | Last agent response only |
+| **chat** | Current chat session (approximated by latest conversation ID) |
+| **ws** | All sessions in the current workspace |
+| **all** | All time, all workspaces |
+
+## Settings
+
+| Setting | Default | Description |
+|---|---|---|
+| `ecologitsCursor.mode` | `workspace` | Active display mode |
+| `ecologitsCursor.metrics` | `gwp wcf energy` | Space-separated metrics to show: `gwp`, `wcf`, `energy`, `adpe`, `pe`, `model` |
+| `ecologitsCursor.zone` | `WOR` | Electricity-mix zone (ISO-3166 alpha-3, e.g. `DEU`, `FRA`) |
+| `ecologitsCursor.api` | `https://api.ecologits.ai/v1beta/estimations` | EcoLogits API endpoint |
+| `ecologitsCursor.nodePath` | `node` | Absolute path to `node` if it is not on Cursor's PATH (common on macOS with Dock launch) |
+
+## Build and install
+
+Requirements: Node.js ≥ 18, npm.
 
 ```bash
+cd C:\Dev\ecologits-cursor
 npm install
+npm run package          # produces ecologits-cursor-0.1.0.vsix
 ```
 
-2. Compile the extension:
+Install in Cursor:
 
-```bash
-npm run compile
+1. Open the Command Palette (`Ctrl+Shift+P`).
+2. Run **Extensions: Install from VSIX…**
+3. Select the generated `.vsix` file.
+4. Reload Cursor when prompted.
+
+## Hook setup
+
+On first activation the extension prompts you to install the capture hook. You can also run it manually:
+
+- **EcoLogits: Install Cursor hook** — adds the `afterAgentResponse` entry to `~/.cursor/hooks.json`.
+- **EcoLogits: Uninstall Cursor hook** — removes it.
+
+The hook entry looks like this:
+
+```json
+{
+  "afterAgentResponse": [
+    {
+      "command": "node \"/path/to/extension/hook/capture.js\"",
+      "timeout": 10
+    }
+  ]
+}
 ```
 
-3. Package the extension:
+The extension automatically updates the path whenever the extension folder changes (e.g. after a VSIX update).
 
-```bash
-npm run package
-```
+## Removing the old PowerShell hook
 
-It will generate a `.vsix` file in the root folder. You can install it in VS Code by opening the command palette (Ctrl+Shift+P), typing "Extensions: Install from VSIX...", and selecting the generated `.vsix` file.
+If you previously used the `ecologits-audit.ps1` / `ecologits-audit.cmd` / `ecologits-audit.sh` scripts:
+
+1. Install this extension and confirm the status bar is working.
+2. Run **EcoLogits: Uninstall Cursor hook** first if the old entry is still in `hooks.json`, then **Install Cursor hook** to add the new one.
+3. Delete `~/.cursor/hooks/ecologits-audit.ps1`, `ecologits-audit.cmd`, and `ecologits-audit.sh`.
+4. Optionally delete `~/.cursor/ecologits-audit.csv` and `~/.cursor/ecologits-audit.log`.
+
+## Data files
+
+| File | Writer | Content |
+|---|---|---|
+| `~/.cursor/ecologits/responses.jsonl` | `capture.js` | One line per agent response: model, tokens, workspace, summary |
+| `~/.cursor/ecologits/impacts.jsonl` | Extension | One line per computed impact: gwp, wcf, energy, adpe, pe |
+| `~/.cursor/ecologits/error.log` | `capture.js` | Errors from the hook script |
+
+## Proxy support
+
+The API call runs in the Cursor extension host, which picks up your system proxy settings. If it doesn't work on your corporate network, set the proxy explicitly in VS Code/Cursor settings (`http.proxy`).
+
+## License
+
+MIT — see [LICENSE](LICENSE).  
+Original work © 2024 Marmelab.
