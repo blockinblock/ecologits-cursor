@@ -90,15 +90,6 @@ The hook entry looks like this:
 
 The extension automatically updates the path whenever the extension folder changes (e.g. after a VSIX update).
 
-## Removing the old PowerShell hook
-
-If you previously used the `ecologits-audit.ps1` / `ecologits-audit.cmd` / `ecologits-audit.sh` scripts:
-
-1. Install this extension and confirm the status bar is working.
-2. Run **EcoLogits: Uninstall Cursor hook** first if the old entry is still in `hooks.json`, then **Install Cursor hook** to add the new one.
-3. Delete `~/.cursor/hooks/ecologits-audit.ps1`, `ecologits-audit.cmd`, and `ecologits-audit.sh`.
-4. Optionally delete `~/.cursor/ecologits-audit.csv` and `~/.cursor/ecologits-audit.log`.
-
 ## Data files
 
 | File | Writer | Content |
