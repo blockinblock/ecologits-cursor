@@ -288,6 +288,9 @@ export function activate(context: vscode.ExtensionContext): void {
       if (e.affectsConfiguration('ecologitsCursor.mode')) {
         // Mode changed: re-aggregate and restart watcher
         startWatching();
+      } else if (e.affectsConfiguration('ecologitsCursor.nudge.enabled')) {
+        // Nudge toggled: add or remove route.js from hooks.json immediately.
+        installHook(context);
       } else {
         repaint();
       }

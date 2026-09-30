@@ -80,6 +80,11 @@
           "type": "string",
           "default": "node",
           "markdownDescription": "Path to the `node` executable used by the capture hook. Set an absolute path (e.g. `/opt/homebrew/bin/node`) if Cursor cannot find `node` on its PATH."
+        },
+        "ecologitsCursor.nudge.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Block prompts that look simple and suggest switching to a smaller model to reduce environmental impact. Disable to turn off the nudge entirely."
         }
       }
     }
@@ -88,7 +93,8 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package --no-dependencies"
+    "package": "vsce package --no-dependencies",
+    "test": "node --test hook/route.test.js"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
