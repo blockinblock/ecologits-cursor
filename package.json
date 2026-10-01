@@ -94,7 +94,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "package": "vsce package --no-dependencies",
-    "test": "node --test hook/route.test.js"
+    "test": "tsc -p ./ && node --test \"hook/*.test.js\" \"test/*.test.js\""
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

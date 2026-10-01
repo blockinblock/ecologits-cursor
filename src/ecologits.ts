@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as https from 'https';
 import * as http from 'http';
 import type { ResponseEvent } from './store';
+import { appendAndTrim } from './trim';
 
 const DATA_DIR    = path.join(os.homedir(), '.cursor', 'ecologits');
 const IMPACTS_FILE = path.join(DATA_DIR, 'impacts.jsonl');
@@ -63,7 +64,7 @@ function mid(range: ApiImpactValue): number {
 function logError(msg: string): void {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.appendFileSync(ERROR_FILE, `${new Date().toISOString()}  ${msg}\n`, 'utf8');
+    appendAndTrim(ERROR_FILE, `${new Date().toISOString()}  ${msg}\n`);
   } catch { /* nowhere to report */ }
 }
 
@@ -202,7 +203,7 @@ export class EcoLogitsQueue {
 export function appendImpact(result: ImpactResult): void {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.appendFileSync(IMPACTS_FILE, JSON.stringify(result) + '\n', 'utf8');
+    appendAndTrim(IMPACTS_FILE, JSON.stringify(result) + '\n');
   } catch (e) {
     logError(`appendImpact: ${e}`);
   }

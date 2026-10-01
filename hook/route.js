@@ -58,11 +58,18 @@ const ERROR_FILE = path.join(DATA_DIR, 'error.log');
 // Helpers
 // ---------------------------------------------------------------------------
 
+const MAX_ENTRIES = 100;
+
 function logError(msg) {
   try {
     const ts = new Date().toISOString();
     fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.appendFileSync(ERROR_FILE, `${ts}  ${msg}\n`, 'utf8');
+    const lines = fs.readFileSync(ERROR_FILE, 'utf8').split('\n').filter(l => l.trim() !== '');
+
+    if (lines.length > MAX_ENTRIES) {
+      fs.writeFileSync(ERROR_FILE, lines.slice(-MAX_ENTRIES).join('\n') + '\n', 'utf8');
+    }
   } catch (_) { /* nowhere to report */ }
 }
 

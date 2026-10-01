@@ -14,10 +14,25 @@ const EVENTS_FILE = path.join(DATA_DIR, 'responses.jsonl');
 const ERROR_FILE  = path.join(DATA_DIR, 'error.log');
 const SUMMARY_MAX = 100;
 
+const MAX_ENTRIES = 100;
+
+function appendAndTrim(file, line) {
+  fs.appendFileSync(file, line, 'utf8');
+
+  try {
+    const lines = fs.readFileSync(file, 'utf8').split('\n').filter(l => l.trim() !== '');
+    
+    if (lines.length > MAX_ENTRIES) {
+      fs.writeFileSync(file, lines.slice(-MAX_ENTRIES).join('\n') + '\n', 'utf8');
+    }
+  } catch (_) { /* ignore */ }
+}
+
 function logError(msg) {
   try {
     const ts = new Date().toISOString();
-    fs.appendFileSync(ERROR_FILE, `${ts}  ${msg}\n`, 'utf8');
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    appendAndTrim(ERROR_FILE, `${ts}  ${msg}\n`);
   } catch (_) { /* nowhere to report */ }
 }
 
@@ -87,7 +102,7 @@ process.stdin.on('end', () => {
 
     try {
       fs.mkdirSync(DATA_DIR, { recursive: true });
-      fs.appendFileSync(EVENTS_FILE, line, 'utf8');
+      appendAndTrim(EVENTS_FILE, line);
     } catch (e) {
       logError(`capture.js: failed to write event: ${e.message}`);
     }

@@ -63,6 +63,7 @@ export function isForWindow(event: ResponseEvent, windowRoots: string[]): boolea
 
 class IncrementalReader<T> {
   private _offset = 0;
+  private _head = '';
 
   constructor(private readonly _filePath: string) {}
 
@@ -76,10 +77,18 @@ class IncrementalReader<T> {
         // File was truncated or replaced — start over
         this._offset = 0;
       }
-      if (size === this._offset) return [];
 
       const fd = fs.openSync(this._filePath, 'r');
       try {
+        // Detect in-place rewrites (e.g. trimming to last 100 entries): the
+        // start of the file changes even if the size grows past our offset.
+        const headBuf = Buffer.alloc(Math.min(64, size));
+        fs.readSync(fd, headBuf, 0, headBuf.length, 0);
+        const head = headBuf.toString('latin1');
+        if (this._offset > 0 && head !== this._head) this._offset = 0;
+        this._head = head;
+        if (size === this._offset) return [];
+
         const buf = Buffer.alloc(size - this._offset);
         fs.readSync(fd, buf, 0, buf.length, this._offset);
         this._offset = size;
@@ -96,7 +105,7 @@ class IncrementalReader<T> {
     return results;
   }
 
-  reset(): void { this._offset = 0; }
+  reset(): void { this._offset = 0; this._head = ''; }
 }
 
 // ---------------------------------------------------------------------------
