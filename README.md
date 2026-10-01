@@ -60,10 +60,12 @@ Click the status bar item to cycle through modes:
 
 | Mode | What it shows |
 |---|---|
-| **last** | Last agent response only |
+| **lastUse** | Last agent response only |
 | **chat** | Current chat session (approximated by latest conversation ID) |
-| **ws** | All sessions in the current workspace |
-| **all** | All time, all workspaces |
+| **workspace** | All sessions in the current workspace |
+| **allTime** | All workspaces |
+
+> **Note:** only the most recent 100 entries are retained in the data files (see [Data files](#data-files)), so **ws** and **all** cover at most roughly the last 100 agent responses, not a true all-time total.
 
 ## Settings
 
@@ -74,7 +76,7 @@ Click the status bar item to cycle through modes:
 | `ecologitsCursor.zone` | `WOR` | Electricity-mix zone (ISO-3166 alpha-3, e.g. `DEU`, `FRA`) |
 | `ecologitsCursor.api` | `https://api.ecologits.ai/v1beta/estimations` | EcoLogits API endpoint |
 | `ecologitsCursor.nodePath` | `node` | Absolute path to `node` if it is not on Cursor's PATH (common on macOS with Dock launch) |
-| `ecologitsCursor.nudge.enabled` | `true` | Block prompts that look simple and suggest switching to a smaller model. Changing this setting takes effect immediately without reloading. |
+| `ecologitsCursor.nudge.enabled` | `true` | Block prompts that look simple and suggest switching to a smaller model. Changing this setting updates `~/.cursor/hooks.json` immediately, but Cursor reads hooks at startup, so you may need to reload the window for it to take effect. |
 
 ## Build and install
 
@@ -120,17 +122,19 @@ The hook entries look like this:
 }
 ```
 
-The `beforeSubmitPrompt` entry is only written when `ecologitsCursor.nudge.enabled` is `true`. Toggling the setting updates `hooks.json` immediately. The extension automatically updates both paths whenever the extension folder changes (e.g. after a VSIX update).
+The `beforeSubmitPrompt` entry is only written when `ecologitsCursor.nudge.enabled` is `true`. Toggling the setting updates `hooks.json` immediately, but Cursor loads hooks at startup, so reload the window afterwards. The extension automatically updates both paths whenever the extension folder changes (e.g. after a VSIX update).
 
 ## Data files
 
 | File | Writer | Content |
 |---|---|---|
-| `~/.cursor/ecologits/responses.jsonl` | `capture.js` | One line per agent response: model, tokens, workspace, summary |
-| `~/.cursor/ecologits/impacts.jsonl` | Extension | One line per computed impact: gwp, wcf, energy, adpe, pe |
-| `~/.cursor/ecologits/error.log` | `capture.js`, `route.js` | Errors from the hook scripts |
+| `~/.cursor/ecologits/responses.jsonl` | `capture.js` | One line per agent response: model, tokens, workspace, conversation/generation IDs, and a short summary (see below) |
+| `~/.cursor/ecologits/impacts.jsonl` | Extension | One line per computed impact: id, status (`ok`, `unsupported-model`, `api-error`, `no-data`), gwp, wcf, energy, adpe, pe |
+| `~/.cursor/ecologits/error.log` | `capture.js`, `route.js`, extension | Errors from the hook scripts and from EcoLogits API calls |
 
-The hooks store **no prompt text** and make **no network calls**.
+**Retention:** each of these files is trimmed to its last 100 entries whenever a line is appended. Older data is discarded.
+
+**Privacy:** the hooks store **no prompt text** and make **no network calls**. However, `capture.js` does store a `summary` in `responses.jsonl`: the first non-empty line of the agent's *response*, stripped of markdown and truncated to 100 characters. This stays on your machine; only the provider, model name, output-token count and electricity zone are sent to the EcoLogits API.
 
 ## Proxy support
 
