@@ -37,6 +37,10 @@
         "title": "EcoLogits: Install Cursor hook"
       },
       {
+        "command": "ecologitsCursor.checkClassifier",
+        "title": "EcoLogits: Check local prompt classifier"
+      },
+      {
         "command": "ecologitsCursor.uninstallHook",
         "title": "EcoLogits: Uninstall Cursor hook"
       }
@@ -85,6 +89,36 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Block prompts that look simple and suggest switching to a smaller model to reduce environmental impact. Disable to turn off the nudge entirely."
+        },
+        "ecologitsCursor.nudge.classifier": {
+          "type": "string",
+          "default": "slm",
+          "enum": ["slm", "heuristic"],
+          "enumDescriptions": [
+            "Classify prompts with a local Ollama model; fall back to heuristics if Ollama is unreachable.",
+            "Use only the built-in heuristics."
+          ],
+          "markdownDescription": "How prompts are classified as simple or complex."
+        },
+        "ecologitsCursor.nudge.slm.endpoint": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434",
+          "markdownDescription": "Ollama endpoint. Only loopback addresses (`127.0.0.1`, `localhost`, `::1`) are accepted, because prompts may contain secrets."
+        },
+        "ecologitsCursor.nudge.slm.model": {
+          "type": "string",
+          "default": "gemma3:270m",
+          "markdownDescription": "Ollama model tag used for classification. Install it with `ollama pull <tag>`."
+        },
+        "ecologitsCursor.nudge.slm.timeoutMs": {
+          "type": "number",
+          "default": 1000,
+          "markdownDescription": "SLM request timeout in milliseconds. Keep it below 3500: the hook's internal watchdog fires 1 s after this, and Cursor's hook timeout is 5 s."
+        },
+        "ecologitsCursor.nudge.slm.keepAlive": {
+          "type": ["number", "string"],
+          "default": -1,
+          "markdownDescription": "Ollama `keep_alive`: `-1` keeps the model loaded indefinitely; or a duration such as `30m`."
         }
       }
     }

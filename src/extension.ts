@@ -4,6 +4,7 @@ import { Store, isForWindow, DATA_DIR, type AggregatedImpacts, type ResponseEven
 import { EcoLogitsQueue } from './ecologits';
 import { fmtGwp, fmtWcf, fmtEnergy, fmtAdpe, fmtPe } from './format';
 import { checkHookOnActivate, installHook, uninstallHook } from './hookInstaller';
+import { writeRouteConfig, warmUpModel, checkClassifier } from './routeConfig';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -272,6 +273,8 @@ export function activate(context: vscode.ExtensionContext): void {
       );
     }),
 
+    vscode.commands.registerCommand('ecologitsCursor.checkClassifier', () => checkClassifier()),
+
     vscode.commands.registerCommand('ecologitsCursor.uninstallHook', () => {
       uninstallHook();
       vscode.window.showInformationMessage('EcoLogits: Hook removed from ~/.cursor/hooks.json.');
@@ -285,6 +288,13 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
       if (!e.affectsConfiguration('ecologitsCursor')) return;
+      if (e.affectsConfiguration('ecologitsCursor.nudge')) {
+        writeRouteConfig();
+        if (e.affectsConfiguration('ecologitsCursor.nudge.slm') ||
+            e.affectsConfiguration('ecologitsCursor.nudge.classifier')) {
+          warmUpModel();
+        }
+      }
       if (e.affectsConfiguration('ecologitsCursor.mode')) {
         // Mode changed: re-aggregate and restart watcher
         startWatching();
@@ -311,6 +321,8 @@ export function activate(context: vscode.ExtensionContext): void {
   // Startup
   // ---------------------------------------------------------------------------
 
+  writeRouteConfig();
+  warmUpModel();
   checkHookOnActivate(context);
   backfill();
   startWatching();

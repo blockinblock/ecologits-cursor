@@ -190,3 +190,136 @@ test('single attachment → not blocked by attachment count', () => {
   // One attachment is fine; the prompt is short so it gets nudged.
   assert.equal(r.nudge, true);
 });
+
+// ---------------------------------------------------------------------------
+// decide() — SLM classification with heuristic fallback
+// ---------------------------------------------------------------------------
+
+const http = require('node:http');
+const { decide } = require('./route.js');
+
+/** Start a fake Ollama server; handler(req,res) controls the response. */
+function fakeOllama(handler) {
+  return new Promise(resolve => {
+    const state = { hits: 0 };
+    const server = http.createServer((req, res) => { state.hits++; handler(req, res); });
+    server.listen(0, '127.0.0.1', () => {
+      state.server = server;
+      state.endpoint = `http://127.0.0.1:${server.address().port}`;
+      resolve(state);
+    });
+  });
+}
+
+const labelReply = label => (req, res) => {
+  req.resume();
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify({ message: { content: JSON.stringify({ label }) } }));
+};
+
+const cfgFor = (endpoint, extra = {}) => ({
+  classifier: 'slm', endpoint, model: 'gemma3:270m', timeoutMs: 300, keepAlive: -1, ...extra,
+});
+
+// A prompt the heuristic would nudge, one it flags as clearly complex, and
+// an ambiguous one (no heuristic signal either way → default-allow).
+const SIMPLE_P = 'what is a closure?';
+const COMPLEX_P = 'refactor the auth module';
+const AMBIGUOUS_P =
+  'Could you tell me a little about how the weather works in the mountains during the long winter season in northern Europe, as a friendly overview';
+
+test('decide: SLM "simple" → nudge even if heuristic would allow', async () => {
+  const s = await fakeOllama(labelReply('simple'));
+  try {
+    const r = await decide(AMBIGUOUS_P, [], 'claude-opus-5', cfgFor(s.endpoint));
+    assert.deepEqual(r, { nudge: true, reason: 'slm-simple' });
+    assert.equal(s.hits, 1);
+  } finally { s.server.close(); }
+});
+
+test('decide: clearly complex prompt skips the SLM and is never nudged', async () => {
+  const s = await fakeOllama(labelReply('simple'));
+  try {
+    const r = await decide(COMPLEX_P, [], 'claude-opus-5', cfgFor(s.endpoint));
+    assert.deepEqual(r, { nudge: false, reason: 'heuristic-complex:complex-keyword' });
+    assert.equal(s.hits, 0);
+  } finally { s.server.close(); }
+});
+
+test('decide: long prompt and multiple attachments skip the SLM', async () => {
+  const s = await fakeOllama(labelReply('simple'));
+  try {
+    const a = await decide('what is a closure? ' + 'x'.repeat(600), [], 'claude-opus-5', cfgFor(s.endpoint));
+    const b = await decide(SIMPLE_P, [{}, {}], 'claude-opus-5', cfgFor(s.endpoint));
+    assert.equal(a.reason, 'heuristic-complex:long-prompt');
+    assert.equal(b.reason, 'heuristic-complex:multiple-attachments');
+    assert.equal(s.hits, 0);
+  } finally { s.server.close(); }
+});
+
+test('decide: SLM "complex" → allow even if heuristic would nudge', async () => {
+  const s = await fakeOllama(labelReply('complex'));
+  try {
+    const r = await decide(SIMPLE_P, [], 'claude-opus-5', cfgFor(s.endpoint));
+    assert.deepEqual(r, { nudge: false, reason: 'slm-complex' });
+  } finally { s.server.close(); }
+});
+
+test('decide: slow SLM → heuristic fallback', async () => {
+  const s = await fakeOllama((req, res) => { req.resume(); setTimeout(() => res.end('{}'), 1000); });
+  try {
+    const r = await decide(SIMPLE_P, [], 'claude-opus-5', cfgFor(s.endpoint, { timeoutMs: 100 }));
+    assert.equal(r.nudge, true);
+    assert.equal(r.reason, 'fallback:question-word');
+  } finally { s.server.closeAllConnections?.(); s.server.close(); }
+});
+
+test('decide: HTTP 500 → heuristic fallback', async () => {
+  const s = await fakeOllama((req, res) => { req.resume(); res.statusCode = 500; res.end('boom'); });
+  try {
+    const r = await decide(AMBIGUOUS_P, [], 'claude-opus-5', cfgFor(s.endpoint));
+    assert.equal(r.nudge, false);
+    assert.equal(r.reason, 'fallback:default-allow');
+  } finally { s.server.close(); }
+});
+
+test('decide: malformed JSON → heuristic fallback', async () => {
+  const s = await fakeOllama((req, res) => { req.resume(); res.end('not json'); });
+  try {
+    const r = await decide(SIMPLE_P, [], 'claude-opus-5', cfgFor(s.endpoint));
+    assert.match(r.reason, /^fallback:/);
+  } finally { s.server.close(); }
+});
+
+test('decide: connection refused → heuristic fallback', async () => {
+  const s = await fakeOllama(labelReply('simple'));
+  const endpoint = s.endpoint;
+  await new Promise(r => s.server.close(r));
+  const r = await decide(SIMPLE_P, [], 'claude-opus-5', cfgFor(endpoint));
+  assert.equal(r.reason, 'fallback:question-word');
+});
+
+test('decide: non-loopback endpoint is rejected without a request', async () => {
+  const r = await decide(SIMPLE_P, [], 'claude-opus-5', cfgFor('http://example.com:11434'));
+  assert.equal(r.reason, 'fallback:question-word');
+});
+
+test('decide: !big and small-model prompts never reach the SLM', async () => {
+  const s = await fakeOllama(labelReply('simple'));
+  try {
+    const a = await decide('!big ' + SIMPLE_P, [], 'claude-opus-5', cfgFor(s.endpoint));
+    const b = await decide(SIMPLE_P, [], 'gpt-5.5-mini', cfgFor(s.endpoint));
+    assert.equal(a.reason, 'override');
+    assert.equal(b.reason, 'small-model');
+    assert.equal(s.hits, 0);
+  } finally { s.server.close(); }
+});
+
+test('decide: classifier "heuristic" skips the SLM', async () => {
+  const s = await fakeOllama(labelReply('complex'));
+  try {
+    const r = await decide(SIMPLE_P, [], 'claude-opus-5', cfgFor(s.endpoint, { classifier: 'heuristic' }));
+    assert.equal(r.reason, 'question-word');
+    assert.equal(s.hits, 0);
+  } finally { s.server.close(); }
+});

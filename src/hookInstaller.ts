@@ -43,7 +43,7 @@ function managedHooks(): ManagedHook[] {
 
   return [
     { event: 'afterAgentResponse',  script: 'capture.js', timeout: 10, required: () => true },
-    { event: 'beforeSubmitPrompt',  script: 'route.js',   timeout: 2,  required: () => nudgeEnabled },
+    { event: 'beforeSubmitPrompt',  script: 'route.js',   timeout: 5,  required: () => nudgeEnabled },
   ];
 }
 
