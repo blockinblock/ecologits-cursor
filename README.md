@@ -146,7 +146,7 @@ All files live in `~/.cursor/ecologits/`.
 | ------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `responses.jsonl`   | `capture.js`                        | Per agent response: model, tokens, workspace, conversation/generation IDs, short summary                             |
 | `impacts.jsonl`     | Extension                           | Per computed impact: id, status (`ok`, `unsupported-model`, `api-error`, `no-data`), gwp, wcf, energy, adpe, pe      |
-| `error.log`         | `capture.js`, `route.js`, extension | Errors from the hooks and EcoLogits API calls                                                                        |
+| `ecologits.log`     | `capture.js`, `route.js`, extension | Activity and errors from the hooks and EcoLogits API calls; each line is `timestamp [INFO\|ERROR] message`           |
 | `route-config.json` | Extension                           | Classifier settings read by `route.js`                                                                               |
 
 **Retention:** each log file is trimmed to its last 100 entries whenever a line is appended.

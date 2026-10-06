@@ -11,7 +11,7 @@ const os = require('os');
 
 const DATA_DIR   = path.join(os.homedir(), '.cursor', 'ecologits');
 const EVENTS_FILE = path.join(DATA_DIR, 'responses.jsonl');
-const ERROR_FILE  = path.join(DATA_DIR, 'error.log');
+const LOG_FILE    = path.join(DATA_DIR, 'ecologits.log');
 const SUMMARY_MAX = 100;
 
 const MAX_ENTRIES = 100;
@@ -28,13 +28,16 @@ function appendAndTrim(file, line) {
   } catch (_) { /* ignore */ }
 }
 
-function logError(msg) {
+function writeLog(level, msg) {
   try {
     const ts = new Date().toISOString();
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    appendAndTrim(ERROR_FILE, `${ts}  ${msg}\n`);
+    appendAndTrim(LOG_FILE, `${ts} [${level}] ${msg}\n`);
   } catch (_) { /* nowhere to report */ }
 }
+
+const logError = msg => writeLog('ERROR', msg);
+const logInfo  = msg => writeLog('INFO', msg);
 
 function getSummary(text) {
   if (!text || typeof text !== 'string') return '';
@@ -82,6 +85,7 @@ process.stdin.on('end', () => {
 
     if (!modelId || outputTokens === 0) {
       // Nothing useful to record (e.g. a thought block with no tokens)
+      logInfo('capture.js: skipped event (no model or output tokens)');
       process.stdout.write('{}\n');
       process.exit(0);
     }
@@ -103,6 +107,7 @@ process.stdin.on('end', () => {
     try {
       fs.mkdirSync(DATA_DIR, { recursive: true });
       appendAndTrim(EVENTS_FILE, line);
+      logInfo(`capture.js: recorded ${modelId}, ${outputTokens} output tokens`);
     } catch (e) {
       logError(`capture.js: failed to write event: ${e.message}`);
     }

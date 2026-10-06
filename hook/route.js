@@ -18,7 +18,7 @@
 // "simple" verdict from the model nudges.
 // Config is read from ~/.cursor/ecologits/route-config.json.
 //
-// Always exits 0. Errors go to ~/.cursor/ecologits/error.log. The only network
+// Always exits 0. Activity and errors go to ~/.cursor/ecologits/ecologits.log. The only network
 // call is to the loopback Ollama endpoint.
 
 const fs   = require('fs');
@@ -59,7 +59,7 @@ const NUDGE_MESSAGE =
   'or start your prompt with "!big" to keep the current model.';
 
 const DATA_DIR   = path.join(os.homedir(), '.cursor', 'ecologits');
-const ERROR_FILE = path.join(DATA_DIR, 'error.log');
+const LOG_FILE   = path.join(DATA_DIR, 'ecologits.log');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -67,18 +67,21 @@ const ERROR_FILE = path.join(DATA_DIR, 'error.log');
 
 const MAX_ENTRIES = 100;
 
-function logError(msg) {
+function writeLog(level, msg) {
   try {
     const ts = new Date().toISOString();
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.appendFileSync(ERROR_FILE, `${ts}  ${msg}\n`, 'utf8');
-    const lines = fs.readFileSync(ERROR_FILE, 'utf8').split('\n').filter(l => l.trim() !== '');
+    fs.appendFileSync(LOG_FILE, `${ts} [${level}] ${msg}\n`, 'utf8');
+    const lines = fs.readFileSync(LOG_FILE, 'utf8').split('\n').filter(l => l.trim() !== '');
 
     if (lines.length > MAX_ENTRIES) {
-      fs.writeFileSync(ERROR_FILE, lines.slice(-MAX_ENTRIES).join('\n') + '\n', 'utf8');
+      fs.writeFileSync(LOG_FILE, lines.slice(-MAX_ENTRIES).join('\n') + '\n', 'utf8');
     }
   } catch (_) { /* nowhere to report */ }
 }
+
+const logError = msg => writeLog('ERROR', msg);
+const logInfo  = msg => writeLog('INFO', msg);
 
 function allow() {
   process.stdout.write('{"continue":true}\n');
@@ -383,6 +386,7 @@ if (require.main === module) {
       fallback = checkPreRules(prompt, model) || classifyHeuristic(prompt, attachments);
       const result = await decide(prompt, attachments, model, cfg);
 
+      logInfo(`route.js: ${result.nudge ? 'nudge' : 'allow'} (${result.reason})`);
       if (result.nudge) {
         nudge();
       } else {

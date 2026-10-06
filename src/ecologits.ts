@@ -8,7 +8,7 @@ import { appendAndTrim } from './trim';
 
 const DATA_DIR    = path.join(os.homedir(), '.cursor', 'ecologits');
 const IMPACTS_FILE = path.join(DATA_DIR, 'impacts.jsonl');
-const ERROR_FILE   = path.join(DATA_DIR, 'error.log');
+const LOG_FILE     = path.join(DATA_DIR, 'ecologits.log');
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,12 +61,15 @@ function mid(range: ApiImpactValue): number {
   return (range.min + range.max) / 2;
 }
 
-function logError(msg: string): void {
+function writeLog(level: 'INFO' | 'ERROR', msg: string): void {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    appendAndTrim(ERROR_FILE, `${new Date().toISOString()}  ${msg}\n`);
+    appendAndTrim(LOG_FILE, `${new Date().toISOString()} [${level}] ${msg}\n`);
   } catch { /* nowhere to report */ }
 }
+
+const logError = (msg: string): void => writeLog('ERROR', msg);
+const logInfo  = (msg: string): void => writeLog('INFO', msg);
 
 function fetchImpacts(
   event:  ResponseEvent,
@@ -76,6 +79,7 @@ function fetchImpacts(
   const provider = resolveProvider(event.model);
 
   if (!provider) {
+    logInfo(`EcoLogits: unsupported model '${event.model}', API call skipped`);
     return Promise.resolve({ id: event.id, status: 'unsupported-model' });
   }
 
@@ -89,6 +93,7 @@ function fetchImpacts(
 
     let url: URL;
     try { url = new URL(apiUrl); } catch {
+      logError(`EcoLogits: invalid API URL '${apiUrl}'`);
       resolve({ id: event.id, status: 'api-error' });
       return;
     }
@@ -117,6 +122,7 @@ function fetchImpacts(
             i?.gwp?.value && i?.wcf?.value && i?.energy?.value &&
             i?.adpe?.value && i?.pe?.value
           ) {
+            logInfo(`EcoLogits: impacts computed for '${event.model}', ${event.outputTokens} output tokens, zone ${zone}`);
             resolve({
               id:     event.id,
               status: 'ok',
@@ -137,7 +143,11 @@ function fetchImpacts(
       });
     });
 
-    req.setTimeout(8000, () => { req.destroy(); resolve({ id: event.id, status: 'api-error' }); });
+    req.setTimeout(8000, () => {
+      logError(`EcoLogits: API request timed out for model '${event.model}'`);
+      req.destroy();
+      resolve({ id: event.id, status: 'api-error' });
+    });
     req.on('error', (e: Error) => {
       logError(`EcoLogits: API request error for model '${event.model}': ${e.message}`);
       resolve({ id: event.id, status: 'api-error' });

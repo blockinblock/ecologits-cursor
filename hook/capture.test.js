@@ -72,22 +72,38 @@ test('capture.js keeps only the last 100 responses', () => {
   assert.equal(JSON.parse(lines[99]).generationId, 'gen-104');
 });
 
-test('capture.js writes errors to error.log and caps it at 100 entries', () => {
+test('capture.js writes errors to ecologits.log and caps it at 100 entries', () => {
   const home = tmpHome();
   for (let i = 0; i < 103; i++) run(CAPTURE, home, `not json ${i}`);
-  const file = dataFile(home, 'error.log');
+  const file = dataFile(home, 'ecologits.log');
   assert.ok(fs.existsSync(file));
   const lines = readLines(file);
   assert.equal(lines.length, 100);
-  assert.match(lines[0], /failed to parse payload/);
+  assert.match(lines[0], /^\S+ \[ERROR\] capture\.js: failed to parse payload/);
 });
 
-test('route.js caps error.log at 100 entries', () => {
+test('capture.js logs an [INFO] line for a recorded event', () => {
+  const home = tmpHome();
+  run(CAPTURE, home, payload(0));
+  const lines = readLines(dataFile(home, 'ecologits.log'));
+  assert.equal(lines.length, 1);
+  assert.match(lines[0], /^\S+ \[INFO\] capture\.js: recorded gpt-4o, 1 output tokens/);
+});
+
+test('route.js logs an [INFO] line with the verdict', () => {
+  const home = tmpHome();
+  const r = run(ROUTE, home, JSON.stringify({ prompt: '!big hello', model_id: 'gpt-4o' }));
+  assert.equal(r.status, 0);
+  const lines = readLines(dataFile(home, 'ecologits.log'));
+  assert.match(lines[0], /^\S+ \[INFO\] route\.js: allow \(override\)/);
+});
+
+test('route.js caps ecologits.log at 100 entries', () => {
   const home = tmpHome();
   for (let i = 0; i < 102; i++) {
     const r = run(ROUTE, home, 'not json');
     assert.equal(r.status, 0);
   }
-  const lines = readLines(dataFile(home, 'error.log'));
+  const lines = readLines(dataFile(home, 'ecologits.log'));
   assert.equal(lines.length, 100);
 });
