@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { localTimestamp } = require('./localTimestamp');
 
 const DATA_DIR   = path.join(os.homedir(), '.cursor', 'ecologits');
 const EVENTS_FILE = path.join(DATA_DIR, 'responses.jsonl');
@@ -30,7 +31,7 @@ function appendAndTrim(file, line) {
 
 function writeLog(level, msg) {
   try {
-    const ts = new Date().toISOString();
+    const ts = localTimestamp();
     fs.mkdirSync(DATA_DIR, { recursive: true });
     appendAndTrim(LOG_FILE, `${ts} [${level}] ${msg}\n`);
   } catch (_) { /* nowhere to report */ }

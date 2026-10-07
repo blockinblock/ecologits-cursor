@@ -25,6 +25,7 @@ const fs   = require('fs');
 const http = require('http');
 const path = require('path');
 const os   = require('os');
+const { localTimestamp } = require('./localTimestamp');
 
 // ---------------------------------------------------------------------------
 // Constants (all tuneable here at the top)
@@ -69,7 +70,7 @@ const MAX_ENTRIES = 100;
 
 function writeLog(level, msg) {
   try {
-    const ts = new Date().toISOString();
+    const ts = localTimestamp();
     fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.appendFileSync(LOG_FILE, `${ts} [${level}] ${msg}\n`, 'utf8');
     const lines = fs.readFileSync(LOG_FILE, 'utf8').split('\n').filter(l => l.trim() !== '');

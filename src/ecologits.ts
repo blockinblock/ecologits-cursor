@@ -6,6 +6,10 @@ import * as http from 'http';
 import type { ResponseEvent } from './store';
 import { appendAndTrim } from './trim';
 
+// Shared with the hook scripts; resolved at runtime relative to out/.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { localTimestamp } = require('../hook/localTimestamp') as { localTimestamp: () => string };
+
 const DATA_DIR    = path.join(os.homedir(), '.cursor', 'ecologits');
 const IMPACTS_FILE = path.join(DATA_DIR, 'impacts.jsonl');
 const LOG_FILE     = path.join(DATA_DIR, 'ecologits.log');
@@ -64,7 +68,7 @@ function mid(range: ApiImpactValue): number {
 function writeLog(level: 'INFO' | 'ERROR', msg: string): void {
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    appendAndTrim(LOG_FILE, `${new Date().toISOString()} [${level}] ${msg}\n`);
+    appendAndTrim(LOG_FILE, `${localTimestamp()} [${level}] ${msg}\n`);
   } catch { /* nowhere to report */ }
 }
 
