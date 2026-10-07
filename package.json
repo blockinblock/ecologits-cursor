@@ -119,6 +119,11 @@
           "type": ["number", "string"],
           "default": -1,
           "markdownDescription": "Ollama `keep_alive`: `-1` keeps the model loaded indefinitely; or a duration such as `30m`."
+        },
+        "ecologitsCursor.nudge.slm.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Start `ollama serve` automatically when the extension activates and Ollama is not running (loopback endpoints only)."
         }
       }
     }
