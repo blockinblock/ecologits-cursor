@@ -186,7 +186,6 @@ const DEFAULT_CONFIG = {
   endpoint:   'http://127.0.0.1:11434',
   model:      'gemma3:270m',
   timeoutMs:  1000,
-  keepAlive:  -1,
 };
 
 /** Extra time after the SLM timeout before the watchdog gives up (ms). */
@@ -263,7 +262,6 @@ function classifySlm(prompt, attachments, cfg) {
       model: cfg.model,
       stream: false,
       think: false, // thinking models would burn num_predict on reasoning and return no content
-      keep_alive: cfg.keepAlive,
       format: {
         type: 'object',
         properties: { label: { type: 'string', enum: ['simple', 'complex'] } },

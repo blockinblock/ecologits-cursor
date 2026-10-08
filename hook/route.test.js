@@ -218,7 +218,7 @@ const labelReply = label => (req, res) => {
 };
 
 const cfgFor = (endpoint, extra = {}) => ({
-  classifier: 'slm', endpoint, model: 'gemma3:270m', timeoutMs: 300, keepAlive: -1, ...extra,
+  classifier: 'slm', endpoint, model: 'gemma3:270m', timeoutMs: 300, ...extra,
 });
 
 // A prompt the heuristic would nudge, one it flags as clearly complex, and

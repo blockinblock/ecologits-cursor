@@ -50,7 +50,7 @@ When `ecologitsCursor.nudge.enabled` is `true`, `route.js` may block a prompt wi
 
 By default (`ecologitsCursor.nudge.classifier = slm`) the final simple/complex judgement is made by a small local model (`gemma3:270m`, about 0.3 GB) served by [Ollama](https://ollama.com). The `!big` override, small-model check and the "always allowed" rules above run first, so those prompts never reach the model. Only a "simple" verdict nudges. If Ollama is unreachable, slow (default timeout 1000 ms), or returns bad output, `route.js` falls back to the heuristics. Set the classifier to `heuristic` to never call the model.
 
-On the bundled 40-prompt benchmark (`node scripts/bench-slm.js`) the model reaches about 95% accuracy with a warm latency of roughly 170 to 220 ms, versus 65% for the heuristics alone. The first call after the model is unloaded takes a few seconds, so the extension warms it at startup.
+On the bundled 40-prompt benchmark (`node scripts/bench-slm.js`) the model reaches about 95% accuracy with a warm latency of roughly 170 to 220 ms, versus 65% for the heuristics alone. The first call after the model is unloaded takes a few seconds, which exceeds the timeout, so that prompt falls back to the heuristics.
 
 **Setup**
 
@@ -60,7 +60,6 @@ On the bundled 40-prompt benchmark (`node scripts/bench-slm.js`) the model reach
 
 **Windows locations:** binaries in `%LOCALAPPDATA%\Programs\Ollama`, logs in `%LOCALAPPDATA%\Ollama`, models in `%USERPROFILE%\.ollama\models` (override with the `OLLAMA_MODELS` environment variable, e.g. `D:\ollama\models`). On macOS and Linux models default to `~/.ollama/models`, with the same override.
 
-**Keep-alive:** each request sends `keep_alive` (default `-1`), keeping the model in RAM (about 0.3 GB). Set a duration such as `30m` in `ecologitsCursor.nudge.slm.keepAlive` to let it unload when idle.
 
 **Privacy:** the first ~1000 characters of the prompt are sent only to the Ollama endpoint, and only loopback endpoints (`127.0.0.1`, `localhost`, `::1`) are accepted. The extension writes its settings to `~/.cursor/ecologits/route-config.json`, which the hook reads on every run.
 
@@ -102,7 +101,6 @@ Click the status bar item to cycle through modes:
 | `ecologitsCursor.nudge.slm.endpoint`  | `http://127.0.0.1:11434`                      | Ollama endpoint (loopback only)                                                                                                                                  |
 | `ecologitsCursor.nudge.slm.model`     | `gemma3:270m`                                 | Ollama model tag                                                                                                                                                 |
 | `ecologitsCursor.nudge.slm.timeoutMs` | `1000`                                        | SLM request timeout; keep below 3500 (the watchdog fires 1 s later and Cursor's hook timeout is 5 s)                                                             |
-| `ecologitsCursor.nudge.slm.keepAlive` | `-1`                                          | Ollama `keep_alive` (`-1` = stay loaded)                                                                                                                         |
 
 ## Build and install
 

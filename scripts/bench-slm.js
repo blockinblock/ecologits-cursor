@@ -64,7 +64,7 @@ const SET = [
 
 const model    = process.argv[2] || 'gemma3:270m';
 const endpoint = process.argv[3] || 'http://127.0.0.1:11434';
-const cfg = { classifier: 'slm', endpoint, model, timeoutMs: 30000, keepAlive: -1 };
+const cfg = { classifier: 'slm', endpoint, model, timeoutMs: 30000 };
 
 const pct = (arr, q) => {
   const s = [...arr].sort((a, b) => a - b);

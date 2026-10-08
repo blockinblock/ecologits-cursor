@@ -4,7 +4,7 @@ import { Store, isForWindow, DATA_DIR, type AggregatedImpacts, type ResponseEven
 import { EcoLogitsQueue } from './ecologits';
 import { fmtGwp, fmtWcf, fmtEnergy, fmtAdpe, fmtPe } from './format';
 import { checkHookOnActivate, installHook, uninstallHook } from './hookInstaller';
-import { writeRouteConfig, warmUpModel, checkClassifier } from './routeConfig';
+import { writeRouteConfig, checkClassifier } from './routeConfig';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -290,10 +290,6 @@ export function activate(context: vscode.ExtensionContext): void {
       if (!e.affectsConfiguration('ecologitsCursor')) return;
       if (e.affectsConfiguration('ecologitsCursor.nudge')) {
         writeRouteConfig();
-        if (e.affectsConfiguration('ecologitsCursor.nudge.slm') ||
-            e.affectsConfiguration('ecologitsCursor.nudge.classifier')) {
-          warmUpModel();
-        }
       }
       if (e.affectsConfiguration('ecologitsCursor.mode')) {
         // Mode changed: re-aggregate and restart watcher
@@ -322,7 +318,6 @@ export function activate(context: vscode.ExtensionContext): void {
   // ---------------------------------------------------------------------------
 
   writeRouteConfig();
-  warmUpModel();
   checkHookOnActivate(context);
   backfill();
   startWatching();
