@@ -72,7 +72,7 @@ On the bundled 40-prompt benchmark (`node scripts/bench-slm.js`) the model reach
 | Google    | `gemini-*`, `gemma-*`                                   |
 | Mistral   | `mistral-*`, `codestral-*`, `magistral-*`, `devstral-*` |
 
-Other models (Auto, Composer, unknown) are counted as unsupported and listed in the tooltip.
+Other models (Auto, Composer, unknown) are counted as unsupported and the count is shown in the tooltip.
 
 ## Display modes
 
@@ -125,12 +125,15 @@ The entries look like this:
 
 ```json
 {
-  "afterAgentResponse": [
-    { "command": "node \"/path/to/extension/hook/capture.js\"", "timeout": 10 }
-  ],
-  "beforeSubmitPrompt": [
-    { "command": "node \"/path/to/extension/hook/route.js\"", "timeout": 5 }
-  ]
+  "version": 1,
+  "hooks": {
+    "afterAgentResponse": [
+      { "command": "node \"/path/to/extension/hook/capture.js\"", "timeout": 10 }
+    ],
+    "beforeSubmitPrompt": [
+      { "command": "node \"/path/to/extension/hook/route.js\"", "timeout": 5 }
+    ]
+  }
 }
 ```
 
